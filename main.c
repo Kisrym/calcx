@@ -53,10 +53,119 @@ int procedencia(char op) {
 }
 
 Termos analyze_side(char **arr, int size) {
-    Termos resultado;
+    Termos resultado = {0, 0};
     Stack *valores = new_stack();
 
-    
+    int unique_x = 1;
+    for (int i = 0; i < size; i++) {
+        if (is_number(arr[i]) || is_variable(arr[i])) {
+            push(valores, arr[i], strlen(arr[i]));
+        }
+
+        else {
+            char *tmp1 = pop(valores);
+            char *tmp2 = pop(valores);
+            // 2 - 3
+            // 2 3 -
+            if (arr[i][0] == '+') {
+                unique_x = 0;
+                if (is_variable(tmp1)) {
+                    resultado.constante += atof(tmp2);
+                    resultado.coef_x += 1; // so tem o x isolado
+
+                    char tmp[32];
+                    sprintf(tmp, "%lf", 0.);
+                    push(valores, tmp, strlen(tmp));
+                }
+                else if (is_variable(tmp2)) {
+                    resultado.constante += atof(tmp1);
+                    resultado.coef_x += 1; // so tem o x isolado
+
+                    char tmp[32];
+                    sprintf(tmp, "%lf", 0.);
+                    push(valores, tmp, strlen(tmp));
+                }
+
+                else {
+                    double a = atof(tmp1);
+                    double b = atof(tmp2);
+                    char tmp[32];
+
+                    sprintf(tmp, "%lf", a + b);
+                    push(valores, tmp, strlen(tmp));
+                }
+            }
+
+            else if (arr[i][0] == '-') {
+                unique_x = 0;
+                if (is_variable(tmp2)) {
+                    resultado.constante -= atof(tmp1);
+                    resultado.coef_x += 1;
+
+                    char tmp[32];
+                    sprintf(tmp, "%lf", 0.);
+                    push(valores, tmp, strlen(tmp));
+                }
+                else if (is_variable(tmp1)) { // 3 - x
+                    resultado.constante += atof(tmp2);
+                    resultado.coef_x -= 1;
+
+                    char tmp[32];
+                    sprintf(tmp, "%lf", 0.);
+                    push(valores, tmp, strlen(tmp));
+                }
+                else {
+                    double b = atof(tmp1);
+                    double a = atof(tmp2);
+                    char tmp[32];
+
+                    sprintf(tmp, "%lf", a - b);
+                    push(valores, tmp, strlen(tmp));
+                }
+            }
+
+            else if (arr[i][0] == '*') {
+                unique_x = 0;
+                if (is_variable(tmp1)) {
+                    resultado.coef_x += atof(tmp2);
+
+                    char tmp[32];
+                    sprintf(tmp, "%lf", 0.);
+                    push(valores, tmp, strlen(tmp));
+                }
+                else if (is_variable(tmp2)) { // 3 - x
+                    resultado.coef_x += atof(tmp1);
+
+                    char tmp[32];
+                    sprintf(tmp, "%lf", 0.);
+                    push(valores, tmp, strlen(tmp));
+                }
+                else {
+                    double a = atof(tmp1);
+                    double b = atof(tmp2);
+                    char tmp[32];
+
+                    sprintf(tmp, "%lf", a * b);
+                    push(valores, tmp, strlen(tmp));
+                }
+            }
+
+            free(tmp1);
+            free(tmp2);
+        }
+
+    }
+
+    if (!is_empty(valores)) {
+        char *tmp = pop(valores);
+        resultado.constante += atof(tmp);
+        free(tmp);
+    }
+
+    if (unique_x) resultado.coef_x++;
+
+    free_stack(valores);
+    return resultado;
 }
 
 char **in_pos_conversion(char **arr, int size, int* size_arr) {
@@ -114,7 +223,7 @@ char **in_pos_conversion(char **arr, int size, int* size_arr) {
     return saida;
 }
 
-void apply_operator(Stack *stack, char* op, Variavel vars[], int qtd_vars) {
+void apply_operator(Stack *stack, char* op) {
     if (op[0] == '+' || op[0] == '-' || op[0] == '*' || op[0] == '/' || op[0] == '^') {
         char *tmp2 = pop(stack);
         char *tmp1 = pop(stack);
@@ -225,8 +334,8 @@ double calculate(char **arr, int size, Variavel vars[], int qtd_vars) {
             push(valores, arr[i], strlen(arr[i]));
         }
 
-        else if (find_operator(arr[i])) {
-            apply_operator(valores, arr[i], vars, qtd_vars);
+        else if (find_operator(arr[i]) || find_function(arr[i])) {
+            apply_operator(valores, arr[i]);
         }
 
         else if (find_variable(vars, qtd_vars, arr[i], &result) != -1) { // substitui o valor da variável, caso haja
@@ -276,38 +385,58 @@ int main() {
             int input_size;
             char **sentenca = split(input, strlen(input), '=', &input_size);
 
-            if (find_operator(sentenca[0])) {
+            double result;
+            if (find_operator(sentenca[0]) || (!is_number(sentenca[1]) && find_variable(vars, qtd_vars, sentenca[1], &result) == -1)) {
                 rtrim(sentenca[0]);
 
                 int expressao_size;
                 int pos_size;
-                char **expressao = split(sentenca[0], strlen(sentenca[0]), ' ', &expressao_size);
-                char **sentenca_pos_fixa = in_pos_conversion(expressao, expressao_size, &pos_size);
-                analyze_side(sentenca_pos_fixa, pos_size);
-                
-                free_tokens(sentenca_pos_fixa, pos_size);
+                char **expressao0 = split(sentenca[0], strlen(sentenca[0]), ' ', &expressao_size);
+                char **sentenca_pos_fixa0 = in_pos_conversion(expressao0, expressao_size, &pos_size);
+                Termos L_side = analyze_side(sentenca_pos_fixa0, pos_size);
+                free_tokens(sentenca_pos_fixa0, pos_size);
+
+                char **expressao1 = split(sentenca[1], strlen(sentenca[1]), ' ', &expressao_size);
+                char **sentenca_pos_fixa1 = in_pos_conversion(expressao1, expressao_size, &pos_size);
+                Termos R_side = analyze_side(sentenca_pos_fixa1, pos_size);
+                free_tokens(sentenca_pos_fixa1, pos_size);
+
+                double coef_x = L_side.coef_x - R_side.coef_x;
+                double constant = R_side.constante - L_side.constante;
+
+                if (coef_x == 0) {
+                    printf("infinitas soluções\n");
+                }
+                else {
+                    double x = constant / coef_x;
+                    printf("x = %lf\n", x);
+                }
+
             }
 
-            // tira o espaco apos a variavel, caso haja
-            //sentenca[0][strcspn(sentenca[0], " ")] = '\0'; 
-            rtrim(sentenca[0]);
-
-            double result;
-            int index = find_variable(vars, qtd_vars, sentenca[0], &result);
-            
-            if (index != -1) { // achou uma variavel ja existente
-                vars[index].value = evaluate(sentenca[1], vars, qtd_vars); // atualiza seu valor
-                printf("[%s] : [%lf]\n", vars[index].name, vars[index].value);
-            }
-            // variavel nova
             else {
-                strcpy(vars[qtd_vars].name, sentenca[0]);
-                vars[qtd_vars].value = evaluate(sentenca[1], vars, qtd_vars);
-                printf("[%s] : [%lf]\n", vars[qtd_vars].name, vars[qtd_vars].value);
-                qtd_vars++;
+                // tira o espaco apos a variavel, caso haja
+                //sentenca[0][strcspn(sentenca[0], " ")] = '\0'; 
+                rtrim(sentenca[0]);
+
+                double result;
+                int index = find_variable(vars, qtd_vars, sentenca[0], &result);
+                
+                if (index != -1) { // achou uma variavel ja existente
+                    vars[index].value = evaluate(sentenca[1], vars, qtd_vars); // atualiza seu valor
+                    printf("[%s] : [%lf]\n", vars[index].name, vars[index].value);
+                }
+                // variavel nova
+                else {
+                    strcpy(vars[qtd_vars].name, sentenca[0]);
+                    vars[qtd_vars].value = evaluate(sentenca[1], vars, qtd_vars);
+                    printf("[%s] : [%lf]\n", vars[qtd_vars].name, vars[qtd_vars].value);
+                    qtd_vars++;
+                }
             }
 
             free_tokens(sentenca, input_size); // limpando a sentenca
+            
         }
         else {
             rtrim(input);

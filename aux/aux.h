@@ -13,6 +13,9 @@ typedef struct Termos {
 
 int fact(int a);
 int find_variable(Variavel vars[], int size, char name[], double *result);
-int is_number(const char *s);
+int find_function(const char *s);
 int find_operator(const char *s);
+int is_number(const char *s);
+int is_variable(const char *s);
 char *rtrim(char *str);
+char *ltrim(char *str);

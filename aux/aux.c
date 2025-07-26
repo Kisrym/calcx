@@ -32,9 +32,21 @@ int find_operator(const char *s) {
     return 0;
 }
 
+int find_function(const char *s) {
+    return (!(strcmp(s, "cos")) || !(strcmp(s, "sin")) || !(strcmp(s, "tan")) || !(strcmp(s, "sqrt")));
+}
+
 int is_number(const char *s) {
     while (*s != '\0') {
-        if (!isdigit(*s) && *s != '.') return 0;
+        if (!isdigit(*s) && *s != '.' && *s != ' ') return 0;
+        s++;
+    }
+    return 1;
+}
+
+int is_variable(const char *s) {
+    while (*s != '\0') {
+        if (isdigit(*s) || !isalpha(*s)) return 0;
         s++;
     }
     return 1;
@@ -44,5 +56,10 @@ char *rtrim(char *s){
     char* back = s + strlen(s);
     while(isspace(*--back));
     *(back+1) = '\0';
+    return s;
+}
+
+char *ltrim(char *s) {
+    while(isspace(*s)) s++;
     return s;
 }
