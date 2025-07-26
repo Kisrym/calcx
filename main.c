@@ -385,8 +385,7 @@ int main() {
             int input_size;
             char **sentenca = split(input, strlen(input), '=', &input_size);
 
-            double result;
-            if (find_operator(sentenca[0]) || (!is_number(sentenca[1]) && find_variable(vars, qtd_vars, sentenca[1], &result) == -1)) {
+            if (find_operator(sentenca[0]) || (!is_number(sentenca[1]) && !contains_variable(vars, qtd_vars, sentenca[1]))) {
                 rtrim(sentenca[0]);
 
                 int expressao_size;
@@ -423,11 +422,13 @@ int main() {
                 int index = find_variable(vars, qtd_vars, sentenca[0], &result);
                 
                 if (index != -1) { // achou uma variavel ja existente
+                    printf("achou variavel existente\n");
                     vars[index].value = evaluate(sentenca[1], vars, qtd_vars); // atualiza seu valor
                     printf("[%s] : [%lf]\n", vars[index].name, vars[index].value);
                 }
                 // variavel nova
                 else {
+                    printf("achou variavel nova\n");
                     strcpy(vars[qtd_vars].name, sentenca[0]);
                     vars[qtd_vars].value = evaluate(sentenca[1], vars, qtd_vars);
                     printf("[%s] : [%lf]\n", vars[qtd_vars].name, vars[qtd_vars].value);

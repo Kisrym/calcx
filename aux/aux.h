@@ -17,5 +17,6 @@ int find_function(const char *s);
 int find_operator(const char *s);
 int is_number(const char *s);
 int is_variable(const char *s);
+int contains_variable(Variavel vars[], int qtd_vars, const char *s);
 char *rtrim(char *str);
 char *ltrim(char *str);

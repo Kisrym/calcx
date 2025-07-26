@@ -1,4 +1,5 @@
 #include "aux.h"
+#include <stdio.h>
 
 int fact(int a) {
     if (a < 0) return -1;
@@ -50,6 +51,14 @@ int is_variable(const char *s) {
         s++;
     }
     return 1;
+}
+
+int contains_variable(Variavel vars[], int qtd_vars, const char *s) {
+    for (int i = 0; i < qtd_vars; i++) {
+        if (strstr(s, vars[i].name)) return 1;
+    }
+
+    return 0;
 }
 
 char *rtrim(char *s){
